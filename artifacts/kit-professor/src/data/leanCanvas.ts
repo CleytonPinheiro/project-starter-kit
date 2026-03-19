@@ -1,0 +1,11 @@
+export const LEAN_CANVAS_DATA = {
+  problem: { title: "1. Problema", instruction: "Liste os 3 principais problemas do seu público.\nAlternativas: Como eles resolvem isso hoje?", lines: 6, example: "- Filas gigantes na cantina no intervalo.\n- Alunos ficam sem comer por falta de tempo.\n- Cantina perde vendas por lentidão.\n\nAlternativas: Sair a correr quando toca a campainha, trazer de casa." },
+  solution: { title: "4. Solução", instruction: "Esboce as 3 principais funcionalidades que resolvem os problemas.", lines: 4, example: "- App de pré-pedido de lanches.\n- Pagamento via MB WAY/PIX integrado.\n- Fila exclusiva só para levantamento." },
+  metrics: { title: "8. Métricas-Chave", instruction: "Quais números indicarão que o sistema está a resultar?", lines: 4, example: "- Nº de alunos registados.\n- % de pedidos feitos pela app vs balcão.\n- Tempo médio de levantamento." },
+  valueProp: { title: "3. Proposta de Valor", instruction: "Mensagem clara e convincente que explica por que vale a pena.", lines: 4, example: "Compre o seu lanche na sala de aula e levante na cantina sem apanhar fila. O seu intervalo é para descansar, não para esperar." },
+  unfairAdvantage: { title: "9. Vantagem Injusta", instruction: "O que não pode ser facilmente copiado ou comprado?", lines: 4, example: "Parceria direta com a direção da escola e acesso fácil aos alunos." },
+  channels: { title: "5. Canais", instruction: "Como vai chegar até ao seu utilizador?", lines: 4, example: "- Grupos de WhatsApp das turmas.\n- Cartazes nos corredores.\n- Apresentação sala a sala." },
+  segments: { title: "2. Segmento de Clientes", instruction: "Quem é o utilizador alvo?\nEarly Adopters: Quem serão os primeiros?", lines: 6, example: "- Alunos do Ensino Secundário (foco principal).\n- Professores e Funcionários.\n\nEarly Adopters: 12º ano e Associação de Estudantes." },
+  costs: { title: "7. Estrutura de Custos", instruction: "Quais são os custos para manter o projeto a funcionar?", lines: 3, example: "- Alojamento na nuvem (AWS/Vercel).\n- Taxas da gateway de pagamento." },
+  revenue: { title: "6. Fontes de Receita", instruction: "Como o projeto se sustenta ou ganha dinheiro?", lines: 3, example: "- Taxa de conveniência (0,50€/pedido) paga pelo aluno, OU\n- Mensalidade fixa paga pela cantina." }
+} as const;

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Kit do Professor - Engenharia de Requisitos"
+version = "1.0.0"
+id = "artifacts/kit-professor"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19949
+
+[services.development]
+run = "pnpm --filter @workspace/kit-professor run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/kit-professor", "run", "build" ]
+publicDir = "artifacts/kit-professor/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19949"
+BASE_PATH = "/"

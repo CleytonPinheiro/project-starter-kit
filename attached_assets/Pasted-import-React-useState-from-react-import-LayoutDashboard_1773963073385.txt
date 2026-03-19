@@ -1,0 +1,690 @@
+import React, { useState } from 'react';
+import { LayoutDashboard, ListTodo, Users, FileText, Copy, CheckCircle2, ChevronRight, Info, Moon, Sun, Printer, Network, BookOpen, Layers } from 'lucide-react';
+
+/* ==========================================================================
+   1. DADOS E CONFIGURAÇÕES (MOCK DATA)
+   ========================================================================== */
+
+const LEAN_CANVAS_DATA = {
+  problem: { title: "1. Problema", instruction: "Liste os 3 principais problemas do seu público.\nAlternativas: Como eles resolvem isso hoje?", lines: 6, example: "- Filas gigantes na cantina no intervalo.\n- Alunos ficam sem comer por falta de tempo.\n- Cantina perde vendas por lentidão.\n\nAlternativas: Sair a correr quando toca a campainha, trazer de casa." },
+  solution: { title: "4. Solução", instruction: "Esboce as 3 principais funcionalidades que resolvem os problemas.", lines: 4, example: "- App de pré-pedido de lanches.\n- Pagamento via MB WAY/PIX integrado.\n- Fila exclusiva só para levantamento." },
+  metrics: { title: "8. Métricas-Chave", instruction: "Quais números indicarão que o sistema está a resultar?", lines: 4, example: "- Nº de alunos registados.\n- % de pedidos feitos pela app vs balcão.\n- Tempo médio de levantamento." },
+  valueProp: { title: "3. Proposta de Valor", instruction: "Mensagem clara e convincente que explica por que vale a pena.", lines: 4, example: "Compre o seu lanche na sala de aula e levante na cantina sem apanhar fila. O seu intervalo é para descansar, não para esperar." },
+  unfairAdvantage: { title: "9. Vantagem Injusta", instruction: "O que não pode ser facilmente copiado ou comprado?", lines: 4, example: "Parceria direta com a direção da escola e acesso fácil aos alunos." },
+  channels: { title: "5. Canais", instruction: "Como vai chegar até ao seu utilizador?", lines: 4, example: "- Grupos de WhatsApp das turmas.\n- Cartazes nos corredores.\n- Apresentação sala a sala." },
+  segments: { title: "2. Segmento de Clientes", instruction: "Quem é o utilizador alvo?\nEarly Adopters: Quem serão os primeiros?", lines: 6, example: "- Alunos do Ensino Secundário (foco principal).\n- Professores e Funcionários.\n\nEarly Adopters: 12º ano e Associação de Estudantes." },
+  costs: { title: "7. Estrutura de Custos", instruction: "Quais são os custos para manter o projeto a funcionar?", lines: 3, example: "- Alojamento na nuvem (AWS/Vercel).\n- Taxas da gateway de pagamento." },
+  revenue: { title: "6. Fontes de Receita", instruction: "Como o projeto se sustenta ou ganha dinheiro?", lines: 3, example: "- Taxa de conveniência (0,50€/pedido) paga pelo aluno, OU\n- Mensalidade fixa paga pela cantina." }
+};
+
+const BACKLOG_EXAMPLE_DATA = [
+  { id: 'US01', role: 'Aluno', action: 'visualizar a ementa do dia na app', reason: 'para escolher o meu lanche com calma antes do intervalo', priority: 'Alta (Sprint 1)', epic: 'Gestão de Pedidos' },
+  { id: 'US02', role: 'Aluno', action: 'fazer o pagamento integrado', reason: 'para não precisar de carregar dinheiro físico na escola', priority: 'Alta (Sprint 1)', epic: 'Pagamentos' },
+  { id: 'US03', role: 'Responsável da Cantina', action: 'receber uma lista consolidada dos pedidos', reason: 'para preparar os lanches com antecedência', priority: 'Alta (Sprint 1)', epic: 'Painel Administrativo' },
+  { id: 'US04', role: 'Responsável da Cantina', action: 'marcar um pedido como "Pronto para Levantamento"', reason: 'para avisar o aluno e organizar a fila', priority: 'Média (Sprint 2)', epic: 'Painel Administrativo' },
+  { id: 'US05', role: 'Aluno', action: 'receber notificação push quando o lanche estiver pronto', reason: 'para descer para a cantina no momento exato', priority: 'Média (Sprint 2)', epic: 'Notificações' },
+  { id: 'US06', role: 'Aluno', action: 'avaliar o lanche de 1 a 5 estrelas', reason: 'para dar feedback sobre a qualidade', priority: 'Baixa (Sprint 3)', epic: 'Avaliações' },
+];
+
+const LOGBOOK_EXAMPLE_DATA = [
+  {
+    aula: '01', data: '10/03/2026',
+    planejado: 'Formação das equipas, escolha do tema e início da ideação.',
+    executado: 'Equipa SnackOverflow formada. Escolhemos o problema das filas na cantina e preenchemos 80% do Lean Canvas. Tivemos dificuldade em definir os custos.',
+    proximos: 'Finalizar os custos no Lean Canvas e listar as primeiras necessidades (Épicos).'
+  },
+  {
+    aula: '02', data: '17/03/2026',
+    planejado: 'Finalizar Lean Canvas e iniciar a criação do Product Backlog.',
+    executado: 'Lean Canvas finalizado e validado com o professor. Começámos o Backlog e conseguimos escrever 6 Histórias de Utilizador focadas no Aluno.',
+    proximos: 'Escrever as Histórias do perfil "Responsável da Cantina" e definir a prioridade (Alta, Média, Baixa) de todas elas.'
+  },
+  {
+    aula: '03', data: '24/03/2026',
+    planejado: 'Priorizar o Backlog e desenhar o Diagrama de Casos de Uso.',
+    executado: 'Priorizámos o Backlog para a Sprint 1. Desenhámos o diagrama no quadro, identificando o Aluno, Cantina e a API de pagamento como atores.',
+    proximos: 'Passar o diagrama a limpo e começar o Documento de Visão para formalizar o âmbito.'
+  }
+];
+
+/* ==========================================================================
+   2. UTILS E COMPONENTES PARTILHADOS (SHARED COMPONENTS)
+   ========================================================================== */
+
+const WritingLines = ({ count = 3, className = "" }) => (
+  <div className={`flex flex-col flex-1 w-full justify-evenly mt-3 print:mt-2 gap-4 print:gap-5 opacity-60 dark:opacity-40 print:opacity-100 ${className}`}>
+    {Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="border-b-2 border-dotted border-slate-400 dark:border-slate-500 print:border-slate-500 w-full" />
+    ))}
+  </div>
+);
+
+const PrintStyle = ({ landscape = false }) => (
+  <style>{`
+    @media print {
+      @page { size: ${landscape ? 'landscape' : 'portrait'}; margin: 1cm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+      .print-hidden { display: none !important; }
+    }
+  `}</style>
+);
+
+const SectionHeader = ({ title, description, isExample, setIsExample, onPrint }) => (
+  <div className="flex justify-between items-center mb-6 print:hidden">
+    <div>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{title}</h2>
+      <p className="text-slate-600 dark:text-slate-400">{description}</p>
+    </div>
+    <div className="flex gap-4">
+      <div className="flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+        <button onClick={() => setIsExample(false)} className={`px-4 py-2 rounded-md font-medium transition-all ${!isExample ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}>Modelo em Branco</button>
+        <button onClick={() => setIsExample(true)} className={`px-4 py-2 rounded-md font-medium transition-all ${isExample ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}>Exemplo Prático</button>
+      </div>
+      <button onClick={onPrint} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-medium transition-colors shadow-sm">
+        <Printer className="w-4 h-4" /> Imprimir
+      </button>
+    </div>
+  </div>
+);
+
+const PrintHeader = ({ title, subtitle = "", showDate = false }) => (
+  <div className="hidden print:flex justify-between items-center mb-4 border-b-2 border-black pb-2">
+    <div>
+      <h1 className="text-2xl font-black uppercase">{title}</h1>
+      {subtitle && <p className="text-sm italic text-slate-600 mt-1">{subtitle}</p>}
+    </div>
+    <div className="flex gap-4 text-sm w-1/2 justify-end">
+      {showDate ? (
+        <div className="flex-1 max-w-[200px]">Data: ___/___/20__</div>
+      ) : (
+        <div className="flex-1">Projeto/Equipa: <div className="border-b border-black w-full mt-4"></div></div>
+      )}
+    </div>
+  </div>
+);
+
+/* ==========================================================================
+   3. COMPONENTES DAS VIEWS (Ecrãs do Sistema)
+   ========================================================================== */
+
+const TeamOrgView = ({ onPrint }) => {
+  const [isExample, setIsExample] = useState(false);
+
+  return (
+    <div className="flex flex-col h-full animate-fadeIn print:block print:h-auto">
+      <PrintStyle landscape={false} />
+      
+      <SectionHeader 
+        title="Organização da Equipa" 
+        description="Identificação do grupo, integrantes e distribuição de papéis estratégicos." 
+        isExample={isExample} 
+        setIsExample={setIsExample} 
+        onPrint={onPrint} 
+      />
+      
+      <PrintHeader title="Organização da Equipa" showDate={true} />
+
+      <div className="flex-1 bg-white dark:bg-slate-800 print:bg-white rounded-xl shadow-sm print:shadow-none border border-slate-200 dark:border-slate-700 print:border-none p-10 print:p-0 overflow-auto print:overflow-visible text-slate-800 dark:text-slate-200 print:text-black max-w-4xl mx-auto w-full">
+        <h1 className="text-3xl font-black mb-8 text-center uppercase border-b-2 border-slate-300 print:border-black pb-4 print:hidden">Setup Inicial do Projeto</h1>
+
+        <div className="space-y-8">
+          <section>
+            <h2 className="text-xl font-bold mb-2">1. Identificação do Grupo</h2>
+            <p className="text-sm italic text-slate-500 mb-4">Defina o número e o nome escolhido para a sua equipa.</p>
+            {isExample ? (
+              <div className="pl-4 bg-slate-50 dark:bg-slate-900/50 print:bg-transparent p-4 rounded-lg flex gap-8 border border-slate-200 dark:border-slate-700 print:border-black">
+                <p><strong>Nº do Grupo:</strong> 04</p>
+                <p><strong>Nome da Equipa:</strong> SnackOverflow</p>
+              </div>
+            ) : (
+              <div className="pl-4 flex gap-8 w-full border border-slate-200 dark:border-slate-700 print:border-black rounded-lg p-4">
+                <div className="flex items-end gap-2 w-1/4"><strong>Nº do Grupo:</strong> <div className="border-b-2 border-dotted border-slate-400 print:border-black flex-1"></div></div>
+                <div className="flex items-end gap-2 flex-1"><strong>Nome da Equipa:</strong><div className="border-b-2 border-dotted border-slate-400 print:border-black flex-1"></div></div>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold mb-2">2. Integrantes da Equipa</h2>
+            <p className="text-sm italic text-slate-500 mb-4">Liste o nome de todos os membros do grupo e os seus respetivos números da chamada.</p>
+            {isExample ? (
+              <ul className="list-disc pl-8 space-y-2">
+                <li><strong>João Silva</strong> - Nº Chamada: 12</li>
+                <li><strong>Maria Sousa</strong> - Nº Chamada: 25</li>
+                <li><strong>Carlos Almeida</strong> - Nº Chamada: 07</li>
+                <li><strong>Ana Costa</strong> - Nº Chamada: 03</li>
+              </ul>
+            ) : (
+              <div className="pl-4 space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="flex items-end gap-2 flex-1"><strong>Integrante {i + 1}:</strong> <div className="border-b-2 border-dotted border-slate-400 print:border-slate-500 flex-1"></div></div>
+                    <div className="flex items-end gap-2 w-1/3"><strong>Nº da Chamada:</strong> <div className="border-b-2 border-dotted border-slate-400 print:border-slate-500 flex-1"></div></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold mb-2">3. Organização e Frentes de Trabalho</h2>
+            <p className="text-sm italic text-slate-500 mb-4">O trabalho de levantamento de requisitos precisa de estratégia. Defina quem irá liderar as principais frentes de ideação e divisão das tarefas ágeis.</p>
+            {isExample ? (
+              <div className="pl-4 space-y-4">
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 print:bg-transparent p-4 rounded-lg border border-indigo-100 dark:border-indigo-800 print:border-slate-300">
+                  <p className="font-bold text-indigo-800 dark:text-indigo-300 print:text-black">Product Owner / Líder de Backlog: <span className="font-normal text-slate-700 dark:text-slate-300">João Silva</span></p>
+                  <p className="text-sm mt-1">Garante que o grupo não foge do âmbito. É responsável por dividir a solução em partes e organizar as prioridades no <strong>Product Backlog</strong>.</p>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 print:bg-transparent p-4 rounded-lg border border-emerald-100 dark:border-emerald-800 print:border-slate-300">
+                  <p className="font-bold text-emerald-800 dark:text-emerald-300 print:text-black">Analista de Negócios / Requisitos: <span className="font-normal text-slate-700 dark:text-slate-300">Maria Sousa</span></p>
+                  <p className="text-sm mt-1">Conduz a pesquisa de campo na cantina e foca-se em traduzir os problemas nos blocos estratégicos do <strong>Lean Canvas</strong>.</p>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/20 print:bg-transparent p-4 rounded-lg border border-amber-100 dark:border-amber-800 print:border-slate-300">
+                  <p className="font-bold text-amber-800 dark:text-amber-300 print:text-black">Líder Técnico / Arquitetura: <span className="font-normal text-slate-700 dark:text-slate-300">Carlos Almeida</span></p>
+                  <p className="text-sm mt-1">Avalia a viabilidade técnica das ideias e ajuda a redigir os Requisitos Não-Funcionais no <strong>Documento de Visão</strong>.</p>
+                </div>
+                <div className="bg-rose-50 dark:bg-rose-900/20 print:bg-transparent p-4 rounded-lg border border-rose-100 dark:border-rose-800 print:border-slate-300">
+                  <p className="font-bold text-rose-800 dark:text-rose-300 print:text-black">UX/UI Designer e Interação: <span className="font-normal text-slate-700 dark:text-slate-300">Ana Costa</span></p>
+                  <p className="text-sm mt-1">Transforma as "User Stories" em rascunhos de ecrã e estrutura visualmente os fluxos no <strong>Diagrama de Casos de Uso</strong>.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="pl-4 space-y-6">
+                <div><div className="font-bold flex gap-2 w-full max-w-lg border-b border-black mb-2 pb-1">Responsável pela Ideação (Foco no Lean Canvas):</div><WritingLines count={2} /></div>
+                <div><div className="font-bold flex gap-2 w-full max-w-lg border-b border-black mb-2 pb-1">Responsável pela Priorização (Foco no Product Backlog):</div><WritingLines count={2} /></div>
+                <div><div className="font-bold flex gap-2 w-full max-w-lg border-b border-black mb-2 pb-1">Responsável pelo Diagrama de Casos de Uso / Fluxos:</div><WritingLines count={2} /></div>
+                <div><div className="font-bold flex gap-2 w-full max-w-lg border-b border-black mb-2 pb-1">Responsável pelo Documento de Visão (Técnico / Restrições):</div><WritingLines count={2} /></div>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LeanCanvasView = ({ onPrint }) => {
+  const [isExample, setIsExample] = useState(false);
+
+  const renderCard = (key, colSpan, rowSpan, customColors = "") => {
+    const section = LEAN_CANVAS_DATA[key];
+    return (
+      <div className={`border-2 border-slate-200 dark:border-slate-600 print:border-slate-800 rounded-lg p-3 print:p-2 flex flex-col hover:border-indigo-300 transition-colors ${colSpan} ${rowSpan} ${customColors}`}>
+        <h3 className="font-bold text-slate-800 dark:text-slate-200 print:text-black print:text-sm mb-1">{section.title}</h3>
+        {isExample ? (
+          <p className="text-sm text-slate-600 dark:text-slate-400 print:text-black print:text-xs whitespace-pre-wrap">{section.example}</p>
+        ) : (
+          <>
+            <p className="text-xs text-slate-500 dark:text-slate-400 print:text-slate-600 mb-2 italic">{section.instruction}</p>
+            <WritingLines count={section.lines} />
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full animate-fadeIn print:block print:h-auto">
+      <PrintStyle landscape={true} />
+      
+      <SectionHeader 
+        title="Lean Canvas" 
+        description="Ideal para a Fase de Ideação. Valida a ideia de negócio antes de programar." 
+        isExample={isExample} setIsExample={setIsExample} onPrint={onPrint} 
+      />
+      
+      <PrintHeader title="Lean Canvas" />
+
+      <div className="flex-1 overflow-auto print:overflow-visible bg-white dark:bg-slate-800 print:bg-white rounded-xl shadow-sm print:shadow-none border border-slate-200 dark:border-slate-700 print:border-none p-6 print:p-0 min-w-[800px] print:min-w-0 print:w-full">
+        <div className="grid grid-cols-5 grid-rows-3 h-full gap-4 print:gap-2 min-h-[500px] print:min-h-[170mm]">
+          {renderCard('problem', 'col-span-1', 'row-span-2')}
+          <div className="flex flex-col gap-4 print:gap-2 col-span-1 row-span-2">
+            {renderCard('solution', 'flex-1', '')}
+            {renderCard('metrics', 'flex-1', '')}
+          </div>
+          {renderCard('valueProp', 'col-span-1', 'row-span-2', 'bg-indigo-50/30 dark:bg-indigo-900/20 print:bg-slate-50')}
+          <div className="flex flex-col gap-4 print:gap-2 col-span-1 row-span-2">
+            {renderCard('unfairAdvantage', 'flex-1', '')}
+            {renderCard('channels', 'flex-1', '')}
+          </div>
+          {renderCard('segments', 'col-span-1', 'row-span-2')}
+          {renderCard('costs', 'col-span-2', '')}
+          {renderCard('revenue', 'col-span-3', '')}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProductBacklogView = ({ onPrint }) => {
+  const [isExample, setIsExample] = useState(false);
+
+  const emptyRows = Array.from({ length: 12 }).map((_, i) => ({ id: `US${(i+1).toString().padStart(2, '0')}`, role: '', action: '', reason: '', priority: '', epic: '' }));
+  const backlogData = isExample ? BACKLOG_EXAMPLE_DATA : emptyRows;
+
+  return (
+    <div className="flex flex-col h-full animate-fadeIn print:block print:h-auto">
+      <PrintStyle landscape={true} />
+
+      <SectionHeader 
+        title="Product Backlog" 
+        description="Transforma requisitos em tarefas focadas no utilizador (User Stories)." 
+        isExample={isExample} setIsExample={setIsExample} onPrint={onPrint} 
+      />
+
+      <PrintHeader title="Product Backlog" subtitle='Fórmula: "Como [ator], eu quero [ação] para que [motivo]."' />
+
+      <div className="bg-white dark:bg-slate-800 print:bg-transparent rounded-xl shadow-sm print:shadow-none border border-slate-200 dark:border-slate-700 print:border-none overflow-hidden flex-1 flex flex-col">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 print:hidden border-b border-slate-200 dark:border-slate-700">
+           <p className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+             <Info className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+             Fórmula: "Como [ator], eu quero [ação] para que [motivo]."
+           </p>
+        </div>
+        <div className="overflow-x-auto print:overflow-visible">
+          <table className="w-full text-left border-collapse print:border print:border-black">
+            <thead>
+              <tr className="bg-slate-100/50 dark:bg-slate-700/50 print:bg-slate-200">
+                <th className="p-3 border border-slate-200 print:border-black text-sm font-semibold text-slate-600 dark:text-slate-300 print:text-black w-16 text-center">ID</th>
+                <th className="p-3 border border-slate-200 print:border-black text-sm font-semibold text-slate-600 dark:text-slate-300 print:text-black w-48">Módulo/Épico</th>
+                <th className="p-3 border border-slate-200 print:border-black text-sm font-semibold text-slate-600 dark:text-slate-300 print:text-black">História de Utilizador (Quem? O quê? Por quê?)</th>
+                <th className="p-3 border border-slate-200 print:border-black text-sm font-semibold text-slate-600 dark:text-slate-300 print:text-black w-32">Prioridade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {backlogData.map((item, idx) => (
+                <tr key={item.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                  <td className="p-3 border border-slate-200 print:border-black font-mono text-sm text-slate-500 print:text-black text-center">{item.id}</td>
+                  <td className="p-3 border border-slate-200 print:border-black">
+                    {isExample ? (
+                      <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 print:bg-transparent print:border print:border-slate-400 rounded-md text-xs font-medium">{item.epic}</span>
+                    ) : ( <div className="w-full h-8 border-b border-dotted border-slate-400 print:border-slate-500 mt-2"></div> )}
+                  </td>
+                  <td className="p-3 border border-slate-200 print:border-black">
+                    {isExample ? (
+                      <div className="text-sm text-slate-800 dark:text-slate-200 print:text-black">
+                        Como <span className="font-bold text-indigo-600 dark:text-indigo-400 print:text-black">{item.role}</span>, eu quero <span className="font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{item.action}</span> para que <span className="italic text-slate-600 dark:text-slate-400 print:text-black">{item.reason}</span>.
+                      </div>
+                    ) : ( <div className="w-full h-8 border-b border-dotted border-slate-400 print:border-slate-500 mt-2"></div> )}
+                  </td>
+                  <td className="p-3 border border-slate-200 print:border-black text-sm font-medium text-slate-700 dark:text-slate-300 print:text-black">
+                    {isExample ? item.priority : <div className="w-full h-8 border-b border-dotted border-slate-400 print:border-slate-500 mt-2"></div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LogbookView = ({ onPrint }) => {
+  const [isExample, setIsExample] = useState(false);
+
+  return (
+    <div className="flex flex-col h-full animate-fadeIn print:block print:h-auto">
+      <PrintStyle landscape={false} />
+
+      <SectionHeader 
+        title="Diário de Bordo" 
+        description="Registo contínuo do progresso: compare o que foi planeado com o executado." 
+        isExample={isExample} setIsExample={setIsExample} onPrint={onPrint} 
+      />
+
+      <PrintHeader title="Diário de Bordo do Projeto" />
+
+      <div className="flex-1 bg-white dark:bg-slate-800 print:bg-white rounded-xl shadow-sm print:shadow-none border border-slate-200 dark:border-slate-700 print:border-none p-8 print:p-0 overflow-auto print:overflow-visible text-slate-800 dark:text-slate-200 print:text-black mx-auto w-full max-w-4xl">
+        <h1 className="text-3xl font-black mb-8 text-center uppercase border-b-2 border-slate-300 print:border-black pb-4 print:hidden">Acompanhamento das Aulas</h1>
+
+        <div className="space-y-8">
+          {isExample ? (
+            LOGBOOK_EXAMPLE_DATA.map((entry, idx) => (
+              <div key={idx} className="border-2 border-slate-200 dark:border-slate-700 print:border-black rounded-xl p-5 bg-slate-50 dark:bg-slate-900/50 print:bg-transparent">
+                <div className="flex justify-between items-center border-b-2 border-slate-200 dark:border-slate-700 print:border-black pb-3 mb-4">
+                  <h3 className="text-lg font-bold text-indigo-800 dark:text-indigo-300 print:text-black">Aula / Encontro: {entry.aula}</h3>
+                  <span className="font-mono text-sm font-medium">Data: {entry.data}</span>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <strong className="text-slate-700 dark:text-slate-300 print:text-black block mb-1">🎯 Planeado para hoje:</strong>
+                    <p className="text-sm pl-4 border-l-2 border-indigo-200 dark:border-indigo-800">{entry.planejado}</p>
+                  </div>
+                  <div>
+                    <strong className="text-slate-700 dark:text-slate-300 print:text-black block mb-1">✅ O que foi executado (e desafios):</strong>
+                    <p className="text-sm pl-4 border-l-2 border-emerald-200 dark:border-emerald-800">{entry.executado}</p>
+                  </div>
+                  <div>
+                    <strong className="text-slate-700 dark:text-slate-300 print:text-black block mb-1">🚀 Próximos passos / Para a próxima aula:</strong>
+                    <p className="text-sm pl-4 border-l-2 border-amber-200 dark:border-amber-800">{entry.proximos}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="border-2 border-slate-300 dark:border-slate-600 print:border-black rounded-xl p-5 print:p-4 print:mb-4">
+                <div className="flex justify-between items-end border-b-2 border-slate-300 dark:border-slate-600 print:border-black pb-2 mb-4">
+                  <div className="flex items-end gap-2 w-1/3">
+                    <strong className="text-lg">Aula / Encontro:</strong> <div className="border-b-2 border-dotted border-slate-400 print:border-black flex-1"></div>
+                  </div>
+                  <div className="flex items-end gap-2 w-1/4">
+                    <strong>Data:</strong> <div className="border-b-2 border-dotted border-slate-400 print:border-black flex-1"></div>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div><strong className="block mb-1">🎯 Planejado para hoje:</strong><WritingLines count={2} /></div>
+                  <div><strong className="block mb-1">✅ O que foi executado (e quais foram os desafios / bloqueios):</strong><WritingLines count={4} /></div>
+                  <div><strong className="block mb-1">🚀 Próximos passos / Para a próxima aula:</strong><WritingLines count={2} /></div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const UseCaseDiagramView = ({ onPrint }) => {
+  const [isExample, setIsExample] = useState(false);
+
+  return (
+    <div className="flex flex-col h-full animate-fadeIn print:block print:h-auto">
+      <PrintStyle landscape={true} />
+
+      <SectionHeader 
+        title="Diagrama de Casos de Uso (UML)" 
+        description="A ferramenta visual para mapear quem faz o quê no sistema." 
+        isExample={isExample} setIsExample={setIsExample} onPrint={onPrint} 
+      />
+
+      <PrintHeader title="Esboço: Casos de Uso" />
+
+      <div className="flex-1 bg-white dark:bg-slate-800 print:bg-transparent rounded-xl shadow-sm print:shadow-none border border-slate-200 dark:border-slate-700 print:border-none print:p-0 p-8 flex flex-col items-center justify-center overflow-auto print:overflow-visible">
+        <div className="w-full max-w-4xl border-2 border-dashed border-slate-300 dark:border-slate-600 print:border-black rounded-xl p-8 print:p-4 min-h-[500px] relative flex bg-slate-50 dark:bg-slate-900/50 print:bg-white">
+          
+          {/* Actor Left */}
+          <div className="flex flex-col items-center justify-center w-32 shrink-0 z-10">
+            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 print:bg-transparent rounded-full flex items-center justify-center border-2 border-indigo-500 dark:border-indigo-400 print:border-black mb-2">
+              <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400 print:text-black" />
+            </div>
+            <span className="font-bold text-slate-700 dark:text-slate-200 print:text-black">{isExample ? 'Aluno' : 'Ator 1'}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 print:text-black">{isExample ? '(Ator Principal)' : '________'}</span>
+          </div>
+
+          {/* System Boundary */}
+          <div className="flex-1 border-2 border-indigo-200 dark:border-indigo-700 print:border-black bg-white dark:bg-slate-800/80 print:bg-transparent rounded-lg p-6 mx-8 relative flex flex-col items-center justify-center gap-6 shadow-sm print:shadow-none">
+            <span className="absolute -top-3 bg-white dark:bg-slate-800 print:bg-white px-2 font-bold text-indigo-800 dark:text-indigo-400 print:text-black text-sm border border-indigo-200 dark:border-indigo-700 print:border-black rounded">
+              {isExample ? 'Sistema Cantina Express' : 'Fronteira do Sistema'}
+            </span>
+
+            {isExample ? (
+              <>
+                <div className="w-full max-w-sm px-6 py-3 border-2 border-slate-300 dark:border-slate-600 print:border-black rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 print:text-black font-medium bg-slate-50 dark:bg-slate-800 print:bg-white relative">
+                   <div className="absolute -left-16 top-1/2 w-16 h-px bg-slate-400 print:bg-black"></div>Visualizar Ementa
+                </div>
+                <div className="w-full max-w-sm px-6 py-3 border-2 border-slate-300 dark:border-slate-600 print:border-black rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 print:text-black font-medium bg-slate-50 dark:bg-slate-800 print:bg-white relative">
+                   <div className="absolute -left-16 top-1/2 w-16 h-px bg-slate-400 print:bg-black"></div>
+                   <div className="absolute -right-16 top-1/2 w-16 h-px bg-slate-400 print:bg-black border-t border-dashed"></div>Fazer Pedido
+                   <span className="absolute -right-24 -top-4 text-[10px] text-slate-500 bg-white dark:bg-slate-800 print:bg-white px-1">&laquo;include&raquo;</span>
+                </div>
+                 <div className="w-full max-w-sm px-6 py-3 border-2 border-emerald-300 dark:border-emerald-700 print:border-black rounded-full flex items-center justify-center text-emerald-800 dark:text-emerald-400 print:text-black font-medium bg-emerald-50 dark:bg-emerald-900/30 print:bg-white relative ml-12">
+                   Processar Pagamento<div className="absolute -right-16 top-1/2 w-16 h-px bg-slate-400 print:bg-black"></div>
+                </div>
+                <div className="w-full max-w-sm px-6 py-3 border-2 border-slate-300 dark:border-slate-600 print:border-black rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 print:text-black font-medium bg-slate-50 dark:bg-slate-800 print:bg-white relative">
+                   <div className="absolute -right-16 top-1/2 w-16 h-px bg-slate-400 print:bg-black"></div>Gerir Pedidos
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center w-full h-full opacity-30 print:opacity-100">
+                <span className="text-slate-400 print:text-slate-800 font-medium italic">Desenhe as elipses (ações) e as linhas de interação aqui.</span>
+              </div>
+            )}
+          </div>
+
+          {/* Actor Right */}
+          <div className="flex flex-col items-center justify-center w-32 shrink-0 z-10 gap-16">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 print:bg-transparent rounded-full flex items-center justify-center border-2 border-amber-500 dark:border-amber-600 print:border-black mb-2">
+                <Users className="w-6 h-6 text-amber-600 dark:text-amber-500 print:text-black" />
+              </div>
+              <span className="font-bold text-slate-700 dark:text-slate-200 print:text-black text-center">{isExample ? 'Cantina' : 'Ator 2'}</span>
+            </div>
+             <div className="flex flex-col items-center">
+               <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 print:bg-transparent rounded-full flex items-center justify-center border-2 border-emerald-500 dark:border-emerald-600 print:border-black mb-2">
+                <LayoutDashboard className="w-6 h-6 text-emerald-600 dark:text-emerald-500 print:text-black" />
+              </div>
+              <span className="font-bold text-slate-700 dark:text-slate-200 print:text-black text-center">{isExample ? 'API MB WAY' : 'Ator 3 / API'}</span>
+               <span className="text-xs text-slate-500 dark:text-slate-400 print:text-black">{isExample ? '(Ator Externo)' : '________'}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const VisionDocView = ({ onPrint }) => {
+  const [isExample, setIsExample] = useState(false);
+
+  return (
+    <div className="flex flex-col h-full animate-fadeIn print:block print:h-auto">
+      <PrintStyle landscape={false} />
+
+      <SectionHeader 
+        title="Documento de Visão" 
+        description="Especificação formal em formato de texto. Define as bases e os limites do software." 
+        isExample={isExample} setIsExample={setIsExample} onPrint={onPrint} 
+      />
+
+      <div className="flex-1 bg-white dark:bg-slate-800 print:bg-white rounded-xl shadow-sm print:shadow-none border border-slate-200 dark:border-slate-700 print:border-none p-10 print:p-0 overflow-auto print:overflow-visible text-slate-800 dark:text-slate-200 print:text-black max-w-4xl mx-auto w-full">
+        
+        <h1 className="text-3xl font-black mb-8 text-center uppercase border-b-2 border-slate-300 print:border-black pb-4">Documento de Visão</h1>
+
+        <div className="space-y-8">
+          <section>
+            <h2 className="text-xl font-bold mb-2">1. Informações do Projeto</h2>
+            {isExample ? (
+              <p className="pl-4"><strong>Nome do Projeto:</strong> Sistema Cantina Express<br/><strong>Equipa:</strong> Turma 302 Info</p>
+            ) : (
+              <div className="pl-4 space-y-4 w-full">
+                <div className="flex items-end gap-2"><strong>Nome do Projeto:</strong> <div className="border-b border-dotted border-slate-400 print:border-black flex-1"></div></div>
+                <div className="flex items-end gap-2"><strong>Equipa:</strong> <div className="border-b border-dotted border-slate-400 print:border-black flex-1"></div></div>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold mb-2">2. O Problema e a Solução</h2>
+            <p className="text-sm italic text-slate-500 mb-2">Descreva a dor principal e o que o software fará para resolver.</p>
+            {isExample ? (
+              <div className="pl-4 bg-slate-50 dark:bg-slate-900/50 print:bg-transparent p-4 rounded-lg">
+                <p><strong>Problema:</strong> Filas longas e tempo de espera excessivo na hora do intervalo escolar.</p>
+                <p className="mt-2"><strong>A Solução:</strong> Uma aplicação móvel que permite aos alunos visualizarem a ementa, fazerem pedidos antecipados e pagarem via MB WAY/PIX, gerando uma fila exclusiva de levantamento rápido na cantina.</p>
+              </div>
+            ) : ( <WritingLines count={4} className="pl-4" /> )}
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold mb-2">3. Perfis de Utilizadores (Atores)</h2>
+            <p className="text-sm italic text-slate-500 mb-2">Liste os tipos de utilizadores e o que eles farão no sistema.</p>
+            {isExample ? (
+               <ul className="list-disc pl-8 space-y-2">
+                 <li><strong>Aluno:</strong> Acede à app, vê produtos, adiciona ao carrinho, paga e acompanha o estado.</li>
+                 <li><strong>Responsável da Cantina (Admin):</strong> Acede ao painel web, recebe pedidos em tempo real e muda o estado para "Pronto".</li>
+               </ul>
+            ) : (
+              <div className="pl-4 space-y-6">
+                <div><div className="font-bold flex gap-2 w-1/3 border-b border-black mb-2 pb-1">Perfil 1:</div><WritingLines count={2} /></div>
+                <div><div className="font-bold flex gap-2 w-1/3 border-b border-black mb-2 pb-1">Perfil 2:</div><WritingLines count={2} /></div>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold mb-2">4. Visão Geral do Produto (Âmbito / O que FAZ)</h2>
+            <p className="text-sm italic text-slate-500 mb-2">Liste as 3 a 5 funcionalidades essenciais.</p>
+            {isExample ? (
+               <ul className="list-disc pl-8 space-y-2">
+                 <li>Catálogo digital de produtos com imagens e preços.</li>
+                 <li>Carrinho de compras e integração com gateway de pagamento.</li>
+                 <li>Painel administrativo com fila de pedidos (A Fazer, A Preparar, Pronto).</li>
+               </ul>
+            ) : ( <WritingLines count={5} className="pl-4" /> )}
+          </section>
+
+          <section>
+             <h2 className="text-xl font-bold mb-2">5. Restrições e Requisitos Não-Funcionais (Como É)</h2>
+             <p className="text-sm italic text-slate-500 mb-2">Plataformas, desempenho, segurança, etc.</p>
+             {isExample ? (
+               <ul className="list-disc pl-8 space-y-2">
+                 <li>O sistema para o aluno deve ser responsivo (focado em telemóvel).</li>
+                 <li>O painel da cantina deve correr no browser do PC.</li>
+                 <li>Os dados de pagamento não serão guardados na base de dados local por segurança.</li>
+               </ul>
+            ) : ( <WritingLines count={4} className="pl-4" /> )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+/* ==========================================================================
+   4. LAYOUT PRINCIPAL E NAVEGAÇÃO
+   ========================================================================== */
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('teamorg');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [printMode, setPrintMode] = useState('single');
+
+  const menuItems = [
+    { id: 'teamorg', label: '1. Organização da Equipa', icon: Users, desc: 'Formação e Papéis' },
+    { id: 'leancanvas', label: '2. Lean Canvas', icon: LayoutDashboard, desc: 'Ideação e Negócio' },
+    { id: 'backlog', label: '3. Product Backlog', icon: ListTodo, desc: 'Mapeamento Ágil' },
+    { id: 'logbook', label: '4. Diário de Bordo', icon: BookOpen, desc: 'Registo de Aulas e Evolução' },
+    { id: 'usecase', label: '5. Casos de Uso', icon: Network, desc: 'Interações Visuais (UML)' },
+    { id: 'visiondoc', label: '6. Documento de Visão', icon: FileText, desc: 'Especificação Formal' },
+  ];
+
+  const handlePrintSingle = () => {
+    setPrintMode('single');
+    setTimeout(() => window.print(), 100);
+  };
+
+  const handlePrintAll = () => {
+    setPrintMode('all');
+    setTimeout(() => {
+      window.print();
+      setPrintMode('single'); 
+    }, 200);
+  };
+
+  const displayClass = (tabId) => {
+    if (activeTab === tabId) return 'block h-full';
+    if (printMode === 'all') return 'hidden print:block print:h-auto';
+    return 'hidden';
+  };
+
+  return (
+    <div className={isDarkMode ? 'dark' : ''}>
+      
+      <style>{`
+        @media print {
+          @page portrait_page { size: portrait; margin: 10mm; }
+          @page landscape_page { size: landscape; margin: 10mm; }
+          .page-portrait { page: portrait_page; width: 100%; page-break-after: always; }
+          .page-landscape { page: landscape_page; width: 100%; page-break-after: always; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+          .print-hidden, aside { display: none !important; }
+        }
+      `}</style>
+
+      <div className="flex h-screen bg-slate-50 dark:bg-slate-900 print:bg-white font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
+        
+        {/* === Menu Lateral (Sidebar) === */}
+        <aside className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shadow-sm z-10 transition-colors duration-200 print:hidden shrink-0">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+            <h1 className="text-xl font-black text-indigo-900 dark:text-indigo-300 tracking-tight leading-tight">
+              Kit do Professor<br/>
+              <span className="text-sm font-medium text-indigo-500 dark:text-indigo-400 tracking-normal">Engenharia de Requisitos</span>
+            </h1>
+          </div>
+          
+          <div className="flex-1 py-4 px-3 space-y-2 overflow-y-auto">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full text-left flex items-start gap-3 p-3 rounded-xl transition-all ${
+                    isActive ? 'bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 shadow-sm' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent'
+                  }`}
+                >
+                  <div className={`mt-0.5 p-2 rounded-lg ${isActive ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-semibold ${isActive ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>{item.label}</div>
+                    <div className={`text-xs mt-0.5 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}>{item.desc}</div>
+                  </div>
+                  {isActive && <ChevronRight className="w-4 h-4 text-indigo-400 self-center" />}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+             <button
+              onClick={handlePrintAll}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-bold transition-colors shadow-md shadow-indigo-600/20"
+            >
+              <Layers className="w-5 h-5" /> Imprimir Projeto Completo
+            </button>
+          </div>
+
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Tema do Sistema</div>
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="flex items-center gap-2 p-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              title="Alternar Tema Escuro/Claro"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          </div>
+        </aside>
+
+        {/* === Área de Visualização Dinâmica === */}
+        <main className="flex-1 p-8 print:p-0 overflow-auto print:overflow-visible flex flex-col print:block w-full">
+          <div className={displayClass('teamorg')}>
+             <div className="page-portrait h-full print:h-auto"><TeamOrgView onPrint={handlePrintSingle} /></div>
+          </div>
+          <div className={displayClass('leancanvas')}>
+             <div className="page-landscape h-full print:h-auto"><LeanCanvasView onPrint={handlePrintSingle} /></div>
+          </div>
+          <div className={displayClass('backlog')}>
+             <div className="page-landscape h-full print:h-auto"><ProductBacklogView onPrint={handlePrintSingle} /></div>
+          </div>
+          <div className={displayClass('logbook')}>
+             <div className="page-portrait h-full print:h-auto"><LogbookView onPrint={handlePrintSingle} /></div>
+          </div>
+          <div className={displayClass('usecase')}>
+             <div className="page-landscape h-full print:h-auto"><UseCaseDiagramView onPrint={handlePrintSingle} /></div>
+          </div>
+          <div className={displayClass('visiondoc')}>
+             <div className="page-portrait h-full print:h-auto"><VisionDocView onPrint={handlePrintSingle} /></div>
+          </div>
+        </main>
+
+      </div>
+    </div>
+  );
+}
